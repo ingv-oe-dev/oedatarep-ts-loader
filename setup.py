@@ -78,7 +78,9 @@ setup(
         # 'invenio_base.api_apps': [],
         # 'invenio_base.api_blueprints': [],
         # 'invenio_base.blueprints': [],
-        # 'invenio_celery.tasks': [],
+        'invenio_celery.tasks': [
+            'oedatarep_ts_extension = oedatarep_ts_loader.services.tasks'
+        ],
         # 'invenio_db.models': [],
         # 'invenio_pidstore.minters': [],
         # 'invenio_records.jsonresolver': [],
