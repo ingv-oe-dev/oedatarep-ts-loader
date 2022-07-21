@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2022 INGV Osservatorio Etneo.
+#
+# OEDataRep Time Series Loader is free software; you can redistribute it
+# and/or modify it under the terms of the MIT License; see LICENSE file for
+# more details.
+
+
+"""Time Series unplushed records."""
+
+from elasticsearch_dsl.query import Q
+from invenio_search.api import RecordsSearch
+
+
+class TSRecordsSearch(RecordsSearch):
+    """Search class for records that are not published on TSDSystem yet."""
+
+    class Meta:
+        """Default index and filter for frontpage search."""
+
+        index = "rdmrecords-drafts"
+        default_filter = Q(
+            "query_string",
+            query=("metadata.chart_resource.ts_published:false"),
+        )

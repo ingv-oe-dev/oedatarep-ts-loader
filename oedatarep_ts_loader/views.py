@@ -20,11 +20,3 @@ blueprint = Blueprint(
     template_folder='templates',
     static_folder='static',
 )
-
-
-@blueprint.route("/")
-def index():
-    """Render a basic view."""
-    return render_template(
-        "oedatarep_ts_loader/index.html",
-        module_name=_('OEDataRep Time Series Loader'))
