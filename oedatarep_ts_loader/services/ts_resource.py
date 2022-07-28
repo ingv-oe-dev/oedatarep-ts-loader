@@ -20,7 +20,7 @@ class TSResource():
 
 		self._resp_data = dict()
 		self._record_metadata = dict()
-		
+
 		self._links = dict()
 		self._file_link = ""
 
@@ -62,13 +62,13 @@ class TSResource():
 
 #
 # InvenioRDM/OEDatarep Rest API resources - interface
-# 
-# 
+#
+#
 
 	def get_record_data(self):
 		try:
-			response = requests.get(self._api_record_url, 
-				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))}, 
+			response = requests.get(self._api_record_url,
+				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))},
 				verify=False)
 			response.raise_for_status()
 
@@ -84,8 +84,8 @@ class TSResource():
 
 	def get_record_files(self):
 		try:
-			response = requests.get(self._file_link, 
-				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))}, 
+			response = requests.get(self._file_link,
+				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))},
 				verify=False)
 			response.raise_for_status()
 
@@ -96,7 +96,7 @@ class TSResource():
 			try:
 				if "entries" in response.json():
 					for entry in response.json()["entries"]:
-						
+
 						current_app.logger.debug("Entry: %s", entry)
 
 						try:
@@ -132,8 +132,8 @@ class TSResource():
 		try:
 			current_app.logger.info("GET TimeSeries Header from URL: %s", content_url)
 
-			response = requests.get(content_url, 
-				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))}, 
+			response = requests.get(content_url,
+				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))},
 				verify=False)
 			response.raise_for_status()
 
@@ -149,22 +149,22 @@ class TSResource():
 			return header_json if type(header_json) is dict and bool(header_json) else None
 
 	def put_ts_guid_on_record_metadata(self, ts_guid):
-		self._resp_data["metadata"]["chart_resource"]["chart_props"]["guid"] = ts_guid
-		self._resp_data["metadata"]["chart_resource"]["ts_published"] = True
+		self._resp_data["metadata"]["ts_resources"][0]["chart_props"]["guid"] = ts_guid
+		self._resp_data["metadata"]["ts_resources"][0]["ts_published"] = True
 
 		current_app.logger.info("Record data: %s", self._resp_data)
 
 		try:
 			resp = requests.put(self._api_url + self._record_id + "/draft",
 				data=json.dumps(self._resp_data),
-				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN")),'Content-Type': 'application/json'}, 
+				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN")),'Content-Type': 'application/json'},
 				verify=False
 			)
 			resp.raise_for_status()
-		
+
 		except requests.exceptions.RequestException as err:
 			raise SystemExit(err)
-		
+
 		else:
 			current_app.logger.info("Update_record_metadata return code: %s", resp.status_code)
 
@@ -178,8 +178,8 @@ class TSResource():
 		try:
 			current_app.logger.info("GET TimeSeries Data from URL: %s", content_url)
 
-			csv_file_response = requests.get(content_url, 
-				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))}, 
+			csv_file_response = requests.get(content_url,
+				headers={'Authorization': 'Bearer {}'.format(current_app.config.get("OEDATAREP_API_AUTH_TOKEN"))},
 				verify=False)
 			csv_file_response.raise_for_status()
 
@@ -188,7 +188,7 @@ class TSResource():
 
 		else:
 			csv_file = csv_file_response.text
-			
+
 			# ts_json = make_json(self._resp_data["metadata"]["chart_resource"]["chart_props"]["guid"],
 			# 	csv_file
 			# )
@@ -199,7 +199,7 @@ class TSResource():
 		finally:
 			return ts_json if type(ts_json) is str and bool(ts_json) else None
 #
-# Prepare record files (raw data .csv and metadata .json), to upload 
+# Prepare record files (raw data .csv and metadata .json), to upload
 #
 #
 
@@ -218,7 +218,7 @@ class TSResource():
 			current_app.logger.info("TS_Entry: %s", d_entry)
 			for h_entry in header_entries:
 				current_app.logger.info("Header_Entry: %s", h_entry)
-				try: 
+				try:
 					if h_entry['key'] in d_entry["key"].replace(".csv","")+'_header.json':
 						self.ts_files_to_upload.append([
 							d_entry,
@@ -236,11 +236,11 @@ class TSResource():
 
 #
 # TSD Rest API resources - interface
-# 
-# 
+#
+#
 	def get_tsd_auth_token(self):
 		tsd_token = ""
-		
+
 		try:
 			# tsd_token_response = requests.post(current_app.config.get("TSD_API_URL")+"/tsdws/token",
 			# 	{
@@ -250,17 +250,17 @@ class TSResource():
 			# 	}#,
 			# 	#headers = {"Content-Type": "application/x-www-form-urlencoded"}
 			# )
-			
+
 			# tsd_token_response.raise_for_status()
 			pass
-		
+
 		except requests.exceptions.RequestException as err:
 			raise SystemExit(err)
-		
+
 		else:
 			tsd_token = current_app.config.get("TSD_API_AUTH_TOKEN")
 			current_app.logger.info("TSD_Auth_Token: %s", tsd_token)
-		
+
 		finally:
 			return tsd_token if bool(tsd_token) else None
 
@@ -303,7 +303,7 @@ class TSResource():
 		else:
 			current_app.logger.info("GOT Response from TSD: %s", rsp.status_code)
 			rsp_data = rsp.json()["data"]
-		
+
 		finally:
 			current_app.logger.info("GOT Response - POST_TS_DATA: %s", rsp.json())
 

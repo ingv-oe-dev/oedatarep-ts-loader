@@ -22,5 +22,5 @@ class TSRecordsSearch(RecordsSearch):
         index = "rdmrecords-drafts"
         default_filter = Q(
             "query_string",
-            query=("metadata.chart_resource.ts_published:false"),
+            query=("metadata.ts_resources.ts_published:false"),
         )
