@@ -21,7 +21,7 @@ class OEDataRep:
         self._token = current_app.config.get("OEDATAREP_API_AUTH_TOKEN")
 
     def get_record_data(self, recid):
-        """ Get record metadata """
+        """ Returns record metadata """
         result = self.__get(
             f"{self._records_endpoint}/{recid}/draft",
             {"Authorization": f"Bearer {self._token}"}

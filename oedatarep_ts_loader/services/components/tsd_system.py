@@ -19,14 +19,16 @@ class TSDSystem:
         self._tsd_endpoint = current_app.config.get("TSD_API_URL")
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
 
-    def load_ts(self, ts_header, ts_csv, recid):
+    def create_ts(self, ts_header, recid):
         ts_header["name"] = ts_header["name"] + "_" + \
             str(recid).replace("-", "")
         response = self.__post(
             {"Authorization": self._token},
             ts_header
         )
-        ts_guid = response.json()["data"]["id"]
+        return response.json()["data"]["id"]
+
+    def load_ts(self, ts_guid, ts_csv, recid):
         current_app.logger.info("Record (id:%s) - TS_Guid: %s", recid, ts_guid)
         response = self.__post(
             {"Authorization": self._token},
