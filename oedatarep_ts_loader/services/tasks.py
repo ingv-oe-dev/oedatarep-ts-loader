@@ -8,8 +8,8 @@
 
 from celery import shared_task
 from flask import current_app
-from oedatarep_ts_loader.models.datarep import OEDataRep
-from oedatarep_ts_loader.models.tsd_system import TSDSystem
+from oedatarep_ts_loader.services.components.datarep import OEDataRep
+from oedatarep_ts_loader.services.components.tsd_system import TSDSystem
 from oedatarep_ts_loader.services.search import TSRecordsSearch
 
 
