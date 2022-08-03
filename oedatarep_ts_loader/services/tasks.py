@@ -8,11 +8,9 @@
 
 from celery import shared_task
 from flask import current_app
-from oedatarep_ts_loader.services.ts_resource import TSResource
-from oedatarep_ts_loader.services.search import TSRecordsSearch
 from oedatarep_ts_loader.models.datarep import OEDataRep
-
-import json
+from oedatarep_ts_loader.models.tsd_system import TSDSystem
+from oedatarep_ts_loader.services.search import TSRecordsSearch
 
 
 @shared_task
@@ -20,14 +18,6 @@ def register_ts():
     """ Task that starts time series pubblication on TSDSystem. """
     records = TSRecordsSearch().execute()
     ids = []
-
-    oedatarep = OEDataRep()
-    current_record = oedatarep.get_record_data("paf0m-1qg41")
-    if bool(current_record["links"]) and \
-            bool(current_record["links"]["files"]):
-        files_url = current_record["links"]["files"]
-        files = oedatarep.get_record_files(files_url)
-        print(files)
 
     for record in records:
         if record.metadata.ts_resources:
@@ -40,69 +30,92 @@ def register_ts():
 @shared_task(ignore_result=True)
 def execute_register_ts(recid):
     """ Task that actual publish time series on TSDSystem. """
-    conf = current_app.config
-    ts_object = TSResource(conf.get("OEDATAREP_API_RECORDS_URL"))
-    ts_object.bootstrap_instance(recid)
+    guids = []
+    oedatarep = OEDataRep()
+    tsd_system = TSDSystem()
+    current_record = oedatarep.get_record_data(recid)
+    if bool(current_record["links"]) and \
+            bool(current_record["links"]["files"]):
+        files_url = current_record["links"]["files"]
+        record_files = oedatarep.get_record_files(files_url)
+        files_to_upload = __filter_ts_files(record_files)
+        for entry in files_to_upload:
+            ts_csv = oedatarep.get_record_file_content(
+                entry[0]["content_link"],
+                json=False
+            )
+            header_content = oedatarep.get_record_file_content(
+                entry[1]["content_link"]
+            )
+            (error, guid) = tsd_system.load_ts(header_content, ts_csv, recid)
 
-    record_data = ts_object.get_record_data()
-    ts_object.set_instance_metadata(record_data)
-    ts_object.set_instance_links(record_data)
+            if error is None:
+                guids.append(dict({
+                    "guid": guid,
+                    "chart_props": header_content,
+                    "ts_published": True
+                }))
+
+        current_record["metadata"]["ts_resources"] = guids
+        oedatarep.update_record_metadata(recid, current_record)
+    return (recid, guids)
+
+
+def __parse_record_files(record_files):
+    res = []
 
     try:
-        current_app.logger.debug("Instance _file_link: %s",
-                                 ts_object._file_link)
+        for r in record_files["entries"]:
+            current_app.logger.debug("Entry: %s", r)
+            if r["status"] == "completed":
+                res.append(dict({
+                    "key": r["key"],
+                    "content_link": r["links"]["content"],
+                    "size": r["size"],
+                    "mimetype": r["mimetype"],
+                }))
+    except Exception as err:
+        raise (err)
+    finally:
+        if len(res) > 0:
+            current_app.logger.debug("GOT record_files: %s", res)
 
-        if ts_object._file_link != "":
-            if ts_object.get_record_files():
-                if ts_object.filter_ts_files():
-                    tsd_token = ts_object.get_tsd_auth_token()
+    return res
 
-                    for entry in ts_object.ts_files_to_upload:
-                        ts_guid = ""
-                        header_data = ts_object.get_ts_header_file(
-                            entry[1]["content_link"], tsd_token)
 
-                        if bool(header_data):
-                            header_data["name"] = header_data["name"] + \
-                                "_"+str(recid).replace("-", "")
-                            ts_guid = ts_object.post_ts_header_on_tsd(
-                                header_data, tsd_token)
+def __filter_ts_files(record_files):
+    res = []
+    files = __parse_record_files(record_files)
+    try:
+        data_entries = [d for d in files if d['mimetype'] in 'text/csv']
+        header_entries = [h for h in files if h['mimetype'] in
+                          'application/json']
 
-                            current_app.logger.debug(
-                                "Record (id:%s) - TS_Guid: %s", recid, ts_guid)
+        # current_app.logger.info("TS_Data_Array: %s", data_entries)
+        # current_app.logger.info("TS_Header_Array: %s", header_entries)
+    except ValueError as err:
+        raise (err)
 
-                            # if bool(ts_guid):
-                            # 	ts_object.put_ts_guid_on_record_metadata(ts_guid)
-                        else:
-                            current_app.logger.info(
-                                "Record (id:%s) - has no TS_Header", recid)
+    for d_entry in data_entries:
+        # current_app.logger.info("TS_Entry: %s", d_entry)
+        for h_entry in header_entries:
+            # current_app.logger.info("Header_Entry: %s", h_entry)
+            try:
+                if h_entry['key'] in d_entry["key"].replace(".csv",
+                                                            "_header.json"):
+                    res.append([
+                        d_entry,
+                        [h_entry for h_entry in header_entries
+                            if h_entry['key'] in d_entry["key"].replace(
+                                ".csv", "_header.json")].pop()]
+                    )
+            except ValueError as err:
+                raise (err)
 
-                        ts_data = ts_object.get_ts_data_file(
-                            entry[0]["content_link"], ts_guid, tsd_token)
-                        # ts_data = ts_object.get_ts_data_file(entry[0]["content_link"], tsd_token)
+    if len(data_entries) > 0 and len(header_entries) > 0:
+        current_app.logger.info("Instance data(s) to Upload: %s", res)
+    else:
+        current_app.logger.debug("Instance data: %s \n Intance header: %s",
+                                 data_entries, header_entries)
 
-                        if bool(ts_data):
-                            current_app.logger.debug(
-                                "Record (id:%s) - TS_Data: %s", recid, bool(ts_data))
-                            ts_object.post_ts_data_on_tsd(ts_data, tsd_token)
-
-                            if bool(ts_guid):
-                                ts_object.put_ts_guid_on_record_metadata(
-                                    ts_guid)
-                        else:
-                            current_app.logger.info(
-                                "Record (id:%s) - has no TS_data", recid)
-                else:
-                    current_app.logger.info(
-                        "Record (id:%s) - does not have a valid TS pair files(csv,json)", recid)
-            else:
-                current_app.logger.info("Record (id:%s) - has no files", recid)
-        else:
-            current_app.logger.info(
-                "Record (id:%s) - has no links resource to files", recid)
-
-    except Exception as e:
-        current_app.logger.exception(e)
-        raise e
-
-    return "Time series for Record: %s was successfully published on TSDSystem.", recid
+    return res
