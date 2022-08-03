@@ -20,7 +20,7 @@ def register_ts():
     ids = []
 
     for record in records:
-        if record.metadata.ts_resources:
+        if bool(record.metadata.ts_resources):
             ids.append(record.id)
             execute_register_ts.delay(record.id)
 
@@ -47,8 +47,9 @@ def execute_register_ts(recid):
             header_content = oedatarep.get_record_file_content(
                 entry[1]["content_link"]
             )
-            (error, guid) = tsd_system.load_ts(header_content, ts_csv, recid)
-
+            ts_guid = tsd_system.create_ts(header_content, recid)
+            (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
+            
             if error is None:
                 guids.append(dict({
                     "guid": guid,
@@ -56,8 +57,8 @@ def execute_register_ts(recid):
                     "ts_published": True
                 }))
 
-        current_record["metadata"]["ts_resources"] = guids
-        oedatarep.update_record_metadata(recid, current_record)
+                current_record["metadata"]["ts_resources"] = guids
+                oedatarep.update_record_metadata(recid, current_record)
     return (recid, guids)
 
 
@@ -84,6 +85,7 @@ def __parse_record_files(record_files):
 
 
 def __filter_ts_files(record_files):
+    """ Returns a list with each element a .csv & .json pair. """
     res = []
     files = __parse_record_files(record_files)
     try:
