@@ -6,11 +6,16 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
+import logging
 from celery import shared_task
 from flask import current_app
-from oedatarep_ts_loader.services.components.datarep import OEDataRep
-from oedatarep_ts_loader.services.components.tsd_system import TSDSystem
-from oedatarep_ts_loader.services.search import TSRecordsSearch
+
+from ..errors import TSLoaderException
+from .components.datarep import OEDataRep
+from .components.tsd_system import TSDSystem
+from .search import TSRecordsSearch
+
+logger = logging.getLogger("oedatarep-ts-loader")
 
 
 @shared_task
@@ -27,39 +32,46 @@ def register_ts():
     return " ".join(ids)
 
 
-@shared_task(ignore_result=True)
+@shared_task()
 def execute_register_ts(recid):
     """ Task that actual publish time series on TSDSystem. """
-    guids = []
+    ts_resources = []
     oedatarep = OEDataRep()
     tsd_system = TSDSystem()
-    current_record = oedatarep.get_record_data(recid)
-    if bool(current_record["links"]) and \
-            bool(current_record["links"]["files"]):
-        files_url = current_record["links"]["files"]
-        record_files = oedatarep.get_record_files(files_url)
-        files_to_upload = __filter_ts_files(record_files)
-        for entry in files_to_upload:
-            ts_csv = oedatarep.get_record_file_content(
-                entry[0]["content_link"],
-                json=False
-            )
-            header_content = oedatarep.get_record_file_content(
-                entry[1]["content_link"]
-            )
-            ts_guid = tsd_system.create_ts(header_content, recid)
-            (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
-            
-            if error is None:
-                guids.append(dict({
-                    "guid": guid,
-                    "chart_props": header_content,
-                    "ts_published": True
-                }))
+    try:
+        current_record = oedatarep.get_record_data("recid")
+        record_files = oedatarep.get_record_files(
+                    current_record["links"]["files"]
+        )
+        ts_files = __filter_ts_files(record_files)
+        for ts_resource in current_record["metadata"]["ts_resources"]:
+            if not ts_resource["ts_published"]:
+                ts_csv = oedatarep.get_record_file_content(
+                    ts_files[str(ts_resource["name"])]["csv"]["content_link"],
+                    json=False
+                )
+                header_content = oedatarep.get_record_file_content(
+                    ts_files[ts_resource["name"]]["header"]["content_link"]
+                )
+                ts_guid = tsd_system.create_ts(header_content, recid)
+                (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
 
-                current_record["metadata"]["ts_resources"] = guids
-                oedatarep.update_record_metadata(recid, current_record)
-    return (recid, guids)
+                if error is None:
+                    ts_resources.append(dict({
+                        "guid": guid,
+                        "chart_props": header_content,
+                        "ts_published": True,
+                        "name": header_content["name"],
+                        "chart_url": f"{tsd_system._endpoint}/query"
+                    }))
+            else:
+                ts_resources.append(ts_resource)
+            print(ts_resource)
+        current_record["metadata"]["ts_resources"] = ts_resources
+        oedatarep.update_record_metadata(recid, current_record)
+    except Exception as ex:
+        ts_resources.append({"ERRORE"})
+    return (recid, ts_resources)
 
 
 def __parse_record_files(record_files):
@@ -86,7 +98,7 @@ def __parse_record_files(record_files):
 
 def __filter_ts_files(record_files):
     """ Returns a list with each element a .csv & .json pair. """
-    res = []
+    res = {}
     files = __parse_record_files(record_files)
     try:
         data_entries = [d for d in files if d['mimetype'] in 'text/csv']
@@ -105,19 +117,24 @@ def __filter_ts_files(record_files):
             try:
                 if h_entry['key'] in d_entry["key"].replace(".csv",
                                                             "_header.json"):
-                    res.append([
-                        d_entry,
-                        [h_entry for h_entry in header_entries
-                            if h_entry['key'] in d_entry["key"].replace(
-                                ".csv", "_header.json")].pop()]
-                    )
+                    name = d_entry["key"].replace(".csv", "")
+                    res[name] = dict({
+                        "csv": d_entry,
+                        "header": h_entry
+                    })
+                    # res.append([
+                    #     d_entry,
+                    #     [h_entry for h_entry in header_entries
+                    #         if h_entry['key'] in d_entry["key"].replace(
+                    #             ".csv", "_header.json")].pop()]
+                    # )
             except ValueError as err:
                 raise (err)
 
-    if len(data_entries) > 0 and len(header_entries) > 0:
-        current_app.logger.info("Instance data(s) to Upload: %s", res)
-    else:
-        current_app.logger.debug("Instance data: %s \n Intance header: %s",
-                                 data_entries, header_entries)
+    # if len(data_entries) > 0 and len(header_entries) > 0:
+    #     current_app.logger.info("Instance data(s) to Upload: %s", res)
+    # else:
+    #     current_app.logger.debug("Instance data: %s \n Intance header: %s",
+    #                              data_entries, header_entries)
 
     return res

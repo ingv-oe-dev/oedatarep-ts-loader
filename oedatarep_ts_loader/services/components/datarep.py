@@ -6,9 +6,10 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 import json
+import logging
 from flask import current_app
-
 import requests
+from oedatarep_ts_loader.errors import TSLoaderException
 
 
 class OEDataRep:
@@ -21,7 +22,7 @@ class OEDataRep:
         self._token = current_app.config.get("OEDATAREP_API_AUTH_TOKEN")
 
     def get_record_data(self, recid):
-        """ Returns record metadata """
+        """ Returns record metadata. """
         result = self.__get(
             f"{self._records_endpoint}/{recid}/draft",
             {"Authorization": f"Bearer {self._token}"}
@@ -37,7 +38,7 @@ class OEDataRep:
         return result.json()
 
     def get_record_file_content(self, content_url, json=True):
-        """ Returns record files. """
+        """ Returns record files content. """
         result = self.__get(
             content_url,
             {"Authorization": f"Bearer {self._token}"}
@@ -62,18 +63,19 @@ class OEDataRep:
             raise SystemExit(err)
 
         else:
-            current_app.logger.info(
-                "Update_record_metadata return code: %s", resp.status_code
-            )
+            # logger.info(
+            #     "Update_record_metadata return code: %s", resp.status_code
+            # )
             # TODO: check and fix errors
             print(resp.json())
 
     def __get(self, url, headers):
         """ Performs rest API calls. """
-        try:
-            result = requests.get(url, headers=headers, verify=False)
-            result.raise_for_status()
-        except requests.exceptions.HTTPError:
-            current_app.logger.exception("In connecting to OEDataRep REST APi")
-            raise
+        # try:
+        result = requests.get(url, headers=headers, verify=False)
+        result.raise_for_status()
+        # except requests.HTTPError as http_err:
+        #     logger.warning(f'HTTP error occurred: {http_err}')
+        # except Exception as err:
+        #     logger.warning(f'Other error occurred: {err}')
         return result

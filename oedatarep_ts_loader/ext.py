@@ -11,6 +11,7 @@
 from flask_babelex import gettext as _
 
 from . import config
+from .services.tasks import logger
 
 
 class OEDataRepTsLoader(object):
@@ -28,6 +29,10 @@ class OEDataRepTsLoader(object):
     def init_app(self, app):
         """Flask application initialization."""
         self.init_config(app)
+        app.config.setdefault('OEDATAREP_TS_LOGGER_HANDLERS', app.debug)
+        if app.config['OEDATAREP_TS_LOGGER_HANDLERS']:
+            for handler in app.logger.handlers:
+                logger.addHandler(handler)
         app.extensions['oedatarep-ts-loader'] = self
 
     def init_config(self, app):

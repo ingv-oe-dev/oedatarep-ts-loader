@@ -6,6 +6,7 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 import csv
+import copy
 from io import StringIO
 from flask import current_app
 import requests
@@ -16,15 +17,16 @@ class TSDSystem:
 
     def __init__(self):
         """Class Contructor."""
-        self._tsd_endpoint = current_app.config.get("TSD_API_URL")
+        self._endpoint = current_app.config.get("TSD_API_URL")
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
 
     def create_ts(self, ts_header, recid):
-        ts_header["name"] = ts_header["name"] + "_" + \
+        ts_header_new = copy.deepcopy(ts_header)
+        ts_header_new["name"] = ts_header_new["name"] + "_" + \
             str(recid).replace("-", "")
         response = self.__post(
             {"Authorization": self._token},
-            ts_header
+            ts_header_new
         )
         return response.json()["data"]["id"]
 
@@ -40,7 +42,7 @@ class TSDSystem:
     def __post(self, headers, payload, resource=""):
         try:
             rsp = requests.post(
-                f"{self._tsd_endpoint}/timeseries{resource}",
+                f"{self._endpoint}/timeseries{resource}",
                 json=payload,
                 headers=headers,
             )
