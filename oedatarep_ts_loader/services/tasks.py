@@ -44,12 +44,18 @@ def execute_register_ts(recid):
     tsd_system = TSDSystem()
     try:
         current_record = oedatarep.get_record_data(recid)
+
         record_files = oedatarep.get_record_files(
                     current_record["links"]["files"]
         )
         ts_files = __filter_ts_files(record_files)
+
         for ts_resource in current_record["metadata"]["ts_resources"]:
             if not ts_resource["ts_published"]:
+                
+                if not ts_resource["name"] in ts_files.keys():
+                    raise RecordMissingFiles(ts_resource["name"])
+                
                 ts_csv = oedatarep.get_record_file_content(
                     ts_files[str(ts_resource["name"])]["csv"]["content_link"],
                     json=False
@@ -70,7 +76,7 @@ def execute_register_ts(recid):
                     }))
             else:
                 ts_resources.append(ts_resource)
-            print(ts_resource)
+
         current_record["metadata"]["ts_resources"] = ts_resources
         oedatarep.update_record_metadata(recid, current_record)
         
@@ -86,7 +92,6 @@ def __parse_record_files(record_files):
 
     try:
         for r in record_files["entries"]:
-            # current_app.logger.debug("Entry: %s", r)
             if r["status"] == "completed":
                 res.append(dict({
                     "key": r["key"],
@@ -98,7 +103,7 @@ def __parse_record_files(record_files):
         raise (err)
     finally:
         if len(res) > 0:
-            current_app.logger.debug("GOT record_files: %s", res)
+            logger.debug("Parsed record_files: %s", res)
         else:
             raise RecordMissingFiles()
     return res
@@ -126,7 +131,7 @@ def __check_ts_files_pair(files):
         return (data_entries, header_entries)
 
 def __filter_ts_files(record_files):
-    """ Returns a list with each element a .csv & .json pair. """
+    """ Returns a dict with each element a .csv & .json pair. """
     res = {}
     files = __parse_record_files(record_files)
     data_entries = {}
