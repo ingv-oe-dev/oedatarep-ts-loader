@@ -33,7 +33,7 @@ class OEDataRepTsLoader(object):
         if app.config['OEDATAREP_TS_LOGGER_HANDLERS']:
             for handler in app.logger.handlers:
                 logger.addHandler(handler)
-        app.extensions['oedatarep-ts-loader'] = self
+            app.extensions['oedatarep-ts-loader'] = self
 
     def init_config(self, app):
         """Initialize configuration."""

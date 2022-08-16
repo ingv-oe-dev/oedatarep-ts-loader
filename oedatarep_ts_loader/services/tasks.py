@@ -16,8 +16,8 @@ from ..errors import (
     RecordMissingFiles, 
     HeaderFileMissing, 
     TSDataFileMissing)
-from .components.datarep import OEDataRep
-from .components.tsd_system import TSDSystem
+from .components import OEDataRep
+from .components import TSDSystem
 from .search import TSRecordsSearch
 
 logger = logging.getLogger("oedatarep-ts-loader")
