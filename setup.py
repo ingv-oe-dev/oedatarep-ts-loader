@@ -79,7 +79,7 @@ setup(
         # 'invenio_base.api_blueprints': [],
         # 'invenio_base.blueprints': [],
         'invenio_celery.tasks': [
-            'oedatarep_ts_extension = oedatarep_ts_loader.services.tasks'
+            'oedatarep_ts_loader = oedatarep_ts_loader.services.tasks'
         ],
         # 'invenio_db.models': [],
         # 'invenio_pidstore.minters': [],
