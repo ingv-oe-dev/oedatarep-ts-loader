@@ -23,10 +23,9 @@ class TSDSystem:
         self._endpoint = current_app.config.get("TSD_API_URL")
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
 
-    def create_ts(self, ts_header, recid):
+    def create_ts(self, ts_header, recid, ts_name):
         ts_header_new = copy.deepcopy(ts_header)
-        ts_header_new["name"] = ts_header_new["name"] + "_" + \
-            str(recid).replace("-", "")
+        ts_header_new["name"] = ts_name + "_" + str(recid).replace("-", "")
         response = self.__post(
             {"Authorization": self._token},
             ts_header_new

@@ -12,15 +12,16 @@ from celery import shared_task
 from flask import current_app
 
 from ..errors import (
-    TSLoaderException, 
-    RecordMissingFiles, 
-    HeaderFileMissing, 
+    TSLoaderException,
+    RecordMissingFiles,
+    HeaderFileMissing,
     TSDataFileMissing)
 from .components import OEDataRep
 from .components import TSDSystem
 from .search import TSRecordsSearch
 
 logger = logging.getLogger("oedatarep-ts-loader")
+
 
 @shared_task()
 def register_ts():
@@ -52,10 +53,10 @@ def execute_register_ts(recid):
 
         for ts_resource in current_record["metadata"]["ts_resources"]:
             if not ts_resource["ts_published"]:
-                
+
                 if not ts_resource["name"] in ts_files.keys():
                     raise RecordMissingFiles(ts_resource["name"])
-                
+
                 ts_csv = oedatarep.get_record_file_content(
                     ts_files[str(ts_resource["name"])]["csv"]["content_link"],
                     json=False
@@ -63,7 +64,9 @@ def execute_register_ts(recid):
                 header_content = oedatarep.get_record_file_content(
                     ts_files[ts_resource["name"]]["header"]["content_link"]
                 )
-                ts_guid = tsd_system.create_ts(header_content, recid)
+                # ts_guid = tsd_system.create_ts(header_content, recid)
+                ts_guid = tsd_system.create_ts(header_content, recid,
+                                               ts_resource["name"])
                 (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
 
                 if error is None:
@@ -71,7 +74,7 @@ def execute_register_ts(recid):
                         "guid": guid,
                         "chart_props": header_content,
                         "ts_published": True,
-                        "name": header_content["name"],
+                        "name": ts_resource["name"],
                         "chart_url": f"{tsd_system._endpoint}/query"
                     }))
             else:
@@ -79,13 +82,14 @@ def execute_register_ts(recid):
 
         current_record["metadata"]["ts_resources"] = ts_resources
         oedatarep.update_record_metadata(recid, current_record)
-        
+
     except (RecordMissingFiles, TSDataFileMissing, HeaderFileMissing) as ts_ex:
         logger.warning("Record id: %s - %s", recid, ts_ex.message)
     except (TSLoaderException, Exception) as ex:
         raise ex
 
     return (recid, ts_resources)
+
 
 def __parse_record_files(record_files):
     res = []
@@ -108,6 +112,7 @@ def __parse_record_files(record_files):
             raise RecordMissingFiles()
     return res
 
+
 def __check_ts_files_pair(files):
     data_entries = {}
     header_entries = {}
@@ -126,9 +131,10 @@ def __check_ts_files_pair(files):
 
     except ValueError as err:
         raise (err)
-    
+
     else:
         return (data_entries, header_entries)
+
 
 def __filter_ts_files(record_files):
     """ Returns a dict with each element a .csv & .json pair. """
