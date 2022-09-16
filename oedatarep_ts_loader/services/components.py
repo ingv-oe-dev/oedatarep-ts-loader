@@ -69,6 +69,9 @@ class TSDSystem:
         if data['columns'] is not None:
             data['data'] = []
             for row in csvReader:
+                for i, x in enumerate(row):
+                    if len(x) < 1:
+                        row[i] = None
                 data['data'].append(row)
 
         return data
