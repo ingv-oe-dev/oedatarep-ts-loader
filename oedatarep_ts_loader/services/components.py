@@ -90,7 +90,6 @@ class OEDataRep:
         """ Returns record metadata. """
         result = self.__get(
             f"{self._records_endpoint}/{recid}",
-            # {"Authorization": f"Bearer {self._token}"}
         )
         return result.json()
 
@@ -98,7 +97,6 @@ class OEDataRep:
         """ Returns record files. """
         result = self.__get(
             files_url,
-            # {"Authorization": f"Bearer {self._token}"}
         )
         return result.json()
 
@@ -106,7 +104,6 @@ class OEDataRep:
         """ Returns record files content. """
         result = self.__get(
             content_url,
-            # {"Authorization": f"Bearer {self._token}"}
         )
 
         return result.json() if json else result.text
