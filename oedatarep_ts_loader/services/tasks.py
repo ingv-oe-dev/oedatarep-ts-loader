@@ -6,7 +6,9 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
+import json
 import logging
+import urllib
 
 from celery import shared_task
 from flask import current_app
@@ -58,25 +60,29 @@ def execute_register_ts(recid):
                     raise RecordMissingFiles(ts_resource["name"])
 
                 ts_csv = oedatarep.get_record_file_content(
-                    ts_files[str(ts_resource["name"])]["csv"]["content_link"],
+                    ts_files[str(ts_resource["name"])]["content_link"],
                     json=False
                 )
-                header_content = oedatarep.get_record_file_content(
-                    ts_files[ts_resource["name"]]["header"]["content_link"]
-                )
-                # ts_guid = tsd_system.create_ts(header_content, recid)
-                ts_guid = tsd_system.create_ts(header_content, recid,
-                                               ts_resource["name"])
+                ts_guid = tsd_system.create_ts(ts_resource, recid)
                 (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
 
                 if error is None:
+                    values_query = __build_query(guid, ts_resource["preview"])
                     ts_resources.append(dict({
                         "guid": guid,
-                        "chart_props": header_content,
-                        "ts_published": True,
                         "name": ts_resource["name"],
-                        "chart_url": f"{tsd_system._endpoint}/query"
+                        "tsdws_url": (
+                            f"{tsd_system._endpoint}/timeseries/values"
+                            f"?request={values_query}"
+                        ),
+                        "ts_published": True,
+                        "header": ts_resource["header"],
+                        "preview": ts_resource["preview"],
+                        "description": ts_resource["description"],
+                        "additional_info": ts_resource["additional_info"],
                     }))
+                else:
+                    ts_resources.append(ts_resource)
             else:
                 ts_resources.append(ts_resource)
 
@@ -113,42 +119,23 @@ def __parse_record_files(record_files):
     return res
 
 
-def __check_ts_files_pair(files):
+def __filter_ts_files(record_files):
+    """ Returns a dict with each element a .csv """
+    files = __parse_record_files(record_files)
     data_entries = {}
-    header_entries = {}
 
     try:
         for f in files:
             if f['mimetype'] in 'text/csv':
                 data_entries[f['key'].replace(".csv", "")] = f
-            elif f['mimetype'] in 'application/json':
-                header_entries[f['key'].replace("_header.json", "")] = f
-
-        if len(data_entries.keys()) < len(header_entries.keys()):
-            raise TSDataFileMissing()
-        elif len(data_entries.keys()) > len(header_entries.keys()):
-            raise HeaderFileMissing()
 
     except ValueError as err:
         raise (err)
-
     else:
-        return (data_entries, header_entries)
+        return data_entries
 
 
-def __filter_ts_files(record_files):
-    """ Returns a dict with each element a .csv & .json pair. """
-    res = {}
-    files = __parse_record_files(record_files)
-    data_entries = {}
-    header_entries = {}
-
-    (data_entries, header_entries) = __check_ts_files_pair(files)
-
-    for dk in data_entries.keys():
-        res[dk] = dict({
-            "csv": data_entries[dk],
-            "header": header_entries[dk]
-        })
-
-    return res
+def __build_query(guid, preview_metadata):
+    preview_metadata["id"] = guid
+    q = json.dumps(preview_metadata)
+    return urllib.parse.quote_plus(q)

@@ -23,12 +23,13 @@ class TSDSystem:
         self._endpoint = current_app.config.get("TSD_API_URL")
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
 
-    def create_ts(self, ts_header, recid, ts_name):
-        ts_header_new = copy.deepcopy(ts_header)
-        ts_header_new["name"] = ts_name + "_" + str(recid).replace("-", "")
+    def create_ts(self, ts_resource, recid):
+        ts_header_new = copy.deepcopy(ts_resource["header"])
+        ts_header_new["name"] = ts_resource["name"] + "_" + \
+            str(recid).replace("-", "")
+        ts_header_new["schema"] = "oedatarep"
         response = self.__post(
-            {"Authorization": self._token},
-            ts_header_new
+            {"Authorization": self._token}, ts_header_new
         )
         return response.json()["data"]["id"]
 
