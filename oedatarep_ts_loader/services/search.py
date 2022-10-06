@@ -19,8 +19,11 @@ class TSRecordsSearch(RecordsSearch):
     class Meta:
         """Default index and filter for frontpage search."""
 
-        index = "rdmrecords-drafts"
+        index = "rdmrecords"
         default_filter = Q(
             "query_string",
-            query=("metadata.ts_resources.ts_published:false"),
+            query=(
+                "metadata.ts_resources.ts_published:false AND "
+                "is_published:true"
+            ),
         )

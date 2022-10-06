@@ -89,8 +89,8 @@ class OEDataRep:
     def get_record_data(self, recid):
         """ Returns record metadata. """
         result = self.__get(
-            f"{self._records_endpoint}/{recid}/draft",
-            {"Authorization": f"Bearer {self._token}"}
+            f"{self._records_endpoint}/{recid}",
+            # {"Authorization": f"Bearer {self._token}"}
         )
         return result.json()
 
@@ -98,7 +98,7 @@ class OEDataRep:
         """ Returns record files. """
         result = self.__get(
             files_url,
-            {"Authorization": f"Bearer {self._token}"}
+            # {"Authorization": f"Bearer {self._token}"}
         )
         return result.json()
 
@@ -106,16 +106,32 @@ class OEDataRep:
         """ Returns record files content. """
         result = self.__get(
             content_url,
-            {"Authorization": f"Bearer {self._token}"}
+            # {"Authorization": f"Bearer {self._token}"}
         )
 
         return result.json() if json else result.text
 
     def update_record_metadata(self, recid, metadata):
         try:
+            resp = requests.post(
+                f"{self._records_endpoint}/{recid}/draft",
+                headers={
+                    "Authorization": f"Bearer {self._token}",
+                    'Content-Type': 'application/json'
+                },
+                verify=False
+            )
             resp = requests.put(
                 f"{self._records_endpoint}/{recid}/draft",
                 data=json.dumps(metadata),
+                headers={
+                    "Authorization": f"Bearer {self._token}",
+                    'Content-Type': 'application/json'
+                },
+                verify=False
+            )
+            resp = requests.post(
+                f"{self._records_endpoint}/{recid}/draft/actions/publish",
                 headers={
                     "Authorization": f"Bearer {self._token}",
                     'Content-Type': 'application/json'
@@ -134,10 +150,10 @@ class OEDataRep:
             # TODO: check and fix errors
             print(resp.json())
 
-    def __get(self, url, headers):
+    def __get(self, url, headers=None, verify=False):
         """ Performs rest API calls. """
         # try:
-        result = requests.get(url, headers=headers, verify=False)
+        result = requests.get(url, headers=headers, verify=verify)
         result.raise_for_status()
         # except requests.HTTPError as http_err:
         #     logger.warning(f'HTTP error occurred: {http_err}')
