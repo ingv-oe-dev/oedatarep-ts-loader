@@ -136,6 +136,10 @@ def __filter_ts_files(record_files):
 
 
 def __build_query(guid, preview_metadata):
-    preview_metadata["id"] = guid
-    q = json.dumps(preview_metadata)
+    obj = dict({
+        'id': guid,
+    })
+    for k in preview_metadata:
+        obj[k] = preview_metadata[k]
+    q = json.dumps(obj)
     return urllib.parse.quote_plus(q)

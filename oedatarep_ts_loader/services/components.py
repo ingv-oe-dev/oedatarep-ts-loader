@@ -59,12 +59,13 @@ class TSDSystem:
 
     def __make_json(self, ts_id, csvFile):
         """Convert a CSV to JSON."""
+        delimiter = self.__extract_delimiter(csvFile)
         # create a dictionary
         data = {
             'insert': 'ignore',
             'id': ts_id
         }
-        csvReader = csv.reader(StringIO(csvFile), delimiter=',')
+        csvReader = csv.reader(StringIO(csvFile), delimiter=delimiter)
         data['columns'] = next(csvReader)
         if data['columns'] is not None:
             data['data'] = []
@@ -75,6 +76,12 @@ class TSDSystem:
                 data['data'].append(row)
 
         return data
+
+    def __extract_delimiter(self, file):
+        sniffer = csv.Sniffer()
+        sniffer.preferred = [',', ';', '|']
+        dialect = sniffer.sniff(file)
+        return dialect.delimiter
 
 
 class OEDataRep:
