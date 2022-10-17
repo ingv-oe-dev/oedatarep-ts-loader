@@ -24,10 +24,7 @@ class TSDSystem:
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
 
     def create_ts(self, ts_resource, recid):
-        ts_header_new = copy.deepcopy(ts_resource["header"])
-        ts_header_new["name"] = ts_resource["name"] + "_" + \
-            str(recid).replace("-", "")
-        ts_header_new["schema"] = "oedatarep"
+        ts_header_new = self.__sanitize_header(ts_resource, recid)
         response = self.__post(
             {"Authorization": self._token}, ts_header_new
         )
@@ -41,6 +38,15 @@ class TSDSystem:
             resource="/values"
         )
         return (response.json()["error"], ts_guid)
+
+    def __sanitize_header(self, ts_resource, recid):
+        new_header = copy.deepcopy(ts_resource["header"])
+        new_header["name"] = ts_resource["name"].lower() + "_" + \
+            str(recid).replace("-", "")
+        new_header["schema"] = "oedatarep"
+        for c in new_header["columns"]:
+            c["name"] = c["name"].lower()
+        return new_header
 
     def __post(self, headers, payload, resource=""):
         try:
@@ -68,6 +74,8 @@ class TSDSystem:
         csvReader = csv.reader(StringIO(csvFile), delimiter=delimiter)
         data['columns'] = next(csvReader)
         if data['columns'] is not None:
+            for c in data['columns']:
+                c.lower()
             data['data'] = []
             for row in csvReader:
                 for i, x in enumerate(row):

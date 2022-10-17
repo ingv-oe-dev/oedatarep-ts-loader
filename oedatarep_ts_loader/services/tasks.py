@@ -6,9 +6,7 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
-import json
 import logging
-import urllib
 
 from celery import shared_task
 from flask import current_app
@@ -67,20 +65,20 @@ def execute_register_ts(recid):
                 (error, guid) = tsd_system.load_ts(ts_guid, ts_csv, recid)
 
                 if error is None:
-                    values_query = __build_query(guid, ts_resource["preview"])
-                    ts_resources.append(dict({
+                    values_query = __build_query(ts_resource["preview"])
+                    obj = dict({
                         "guid": guid,
-                        "name": ts_resource["name"],
                         "tsdws_url": (
-                            f"{tsd_system._endpoint}/timeseries/values"
-                            f"?request={values_query}"
+                            f"{tsd_system._endpoint}/timeseries/{guid}/values"
+                            f"?{values_query}"
                         ),
-                        "ts_published": True,
-                        "header": ts_resource["header"],
-                        "preview": ts_resource["preview"],
-                        "description": ts_resource["description"],
-                        "additional_info": ts_resource["additional_info"],
-                    }))
+                    })
+                    for k in ts_resource.keys():
+                        if k == "ts_published":
+                            obj[k] = True
+                        else:
+                            obj[k] = ts_resource[k]
+                    ts_resources.append(obj)
                 else:
                     ts_resources.append(ts_resource)
             else:
@@ -135,11 +133,16 @@ def __filter_ts_files(record_files):
         return data_entries
 
 
-def __build_query(guid, preview_metadata):
-    obj = dict({
-        'id': guid,
-    })
+def __build_query(preview_metadata):
+    res = ""
     for k in preview_metadata:
-        obj[k] = preview_metadata[k]
-    q = json.dumps(obj)
-    return urllib.parse.quote_plus(q)
+        q = ""
+        if k == "columns":
+            cols = ",".join(preview_metadata["columns"])
+            q = f"columns={cols.lower()}"
+        else:
+            q = f"{k}={preview_metadata[k]}"
+
+        res += f"{q}&"
+
+    return res[:-1]
