@@ -7,6 +7,7 @@
 # more details.
 
 import logging
+import urllib
 
 from celery import shared_task
 from flask import current_app
@@ -138,11 +139,34 @@ def __build_query(preview_metadata):
     for k in preview_metadata:
         q = ""
         if k == "columns":
-            cols = ",".join(preview_metadata["columns"])
-            q = f"columns={cols.lower()}"
-        else:
-            q = f"{k}={preview_metadata[k]}"
+            columns_atrrs = [
+                "name",
+                "aggregate",
+                "gain",
+                "offset",
+                "minthreshold",
+                "maxthreshold"
+            ]
+            mat = []
+            for obj in preview_metadata[k]:
+                r = ["", "", "", "", "", ""]
+                for i, c in enumerate(columns_atrrs):
+                    if c in obj.keys():
+                        r[i] = str(obj[c])
+                mat.append(r)
 
-        res += f"{q}&"
+            transpose = [*zip(*mat)]
+
+            for i, c in enumerate(columns_atrrs):
+                attrs = ",".join(transpose[i])
+                if i == 0:
+                    attrs = f"columns={attrs.lower()}"
+                else:
+                    attrs = f"columns_{c}={attrs}"
+                q += f"{attrs}&"
+        else:
+            q = f"{k}={urllib.parse.quote_plus(str(preview_metadata[k]))}&"
+
+        res += f"{q}"
 
     return res[:-1]

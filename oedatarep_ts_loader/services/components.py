@@ -35,7 +35,7 @@ class TSDSystem:
         response = self.__post(
             {"Authorization": self._token},
             self.__make_json(ts_guid, ts_csv),
-            resource="/values"
+            resource=f"/{ts_guid}/values"
         )
         return (response.json()["error"], ts_guid)
 
@@ -155,20 +155,8 @@ class OEDataRep:
         except requests.exceptions.RequestException as err:
             raise SystemExit(err)
 
-        else:
-            # logger.info(
-            #     "Update_record_metadata return code: %s", resp.status_code
-            # )
-            # TODO: check and fix errors
-            print(resp.json())
-
     def __get(self, url, headers=None, verify=False):
         """ Performs rest API calls. """
-        # try:
         result = requests.get(url, headers=headers, verify=verify)
         result.raise_for_status()
-        # except requests.HTTPError as http_err:
-        #     logger.warning(f'HTTP error occurred: {http_err}')
-        # except Exception as err:
-        #     logger.warning(f'Other error occurred: {err}')
         return result
