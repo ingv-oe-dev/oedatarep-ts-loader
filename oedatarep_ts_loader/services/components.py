@@ -54,6 +54,7 @@ class TSDSystem:
                 f"{self._endpoint}/timeseries{resource}",
                 json=payload,
                 headers=headers,
+                verify=False
             )
             rsp.raise_for_status()
         except requests.HTTPError as http_err:
