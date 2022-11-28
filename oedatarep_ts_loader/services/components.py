@@ -28,6 +28,7 @@ class TSDSystem:
         response = self.__post(
             {"Authorization": self._token}, ts_header_new
         )
+        current_app.logger.info("Response object: %s", response.json())
         return response.json()["data"]["id"]
 
     def load_ts(self, ts_guid, ts_csv, recid):
