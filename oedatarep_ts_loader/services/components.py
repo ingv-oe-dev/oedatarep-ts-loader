@@ -6,13 +6,14 @@
 # and/or modify it under the terms of the MIT License; see LICENSE file for
 # more details.
 
-from io import StringIO
-from flask import current_app
-
+import copy
 import csv
 import json
-import copy
+from io import StringIO
+from urllib import parse
+
 import requests
+from flask import current_app
 
 
 class TSDSystem:
@@ -22,6 +23,8 @@ class TSDSystem:
         """Class Contructor."""
         self._endpoint = current_app.config.get("TSD_API_URL")
         self._token = current_app.config.get("TSD_API_AUTH_TOKEN")
+        self.swaggerui_conf = current_app.config.get(
+            "TSD_SWAGGERUI_CONF") or {}
 
     def create_ts(self, ts_resource, recid):
         ts_header_new = self.__sanitize_header(ts_resource, recid)
@@ -39,6 +42,20 @@ class TSDSystem:
             resource=f"/{ts_guid}/values"
         )
         return (response.json()["error"], ts_guid)
+
+    def generate_token(self):
+
+        current_app.logger.info("Generating a new read token")
+        payload = ""
+        if self.swaggerui_conf:
+            payload = parse.urlencode(self.swaggerui_conf)
+        current_app.logger.info(payload)
+        response = requests.post(f"{self._endpoint}/token", data=payload,
+                                 headers={
+                                     'Content-Type': 'application/x-www-form-urlencoded'},
+                                 verify=False)
+        current_app.logger.info(response.__dict__)
+        return response.json()
 
     def __sanitize_header(self, ts_resource, recid):
         new_header = copy.deepcopy(ts_resource["header"])

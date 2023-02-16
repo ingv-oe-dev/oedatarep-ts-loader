@@ -10,6 +10,11 @@
 
 from flask_babelex import gettext as _
 
+from oedatarep_ts_loader.resources.config import SwaggerUIConfig
+from oedatarep_ts_loader.resources.resource import SwaggerUIResource
+from oedatarep_ts_loader.services.config import SwaggerUIServiceConfig
+from oedatarep_ts_loader.services.service import SwaggerUIService
+
 from . import config
 from .services.tasks import logger
 
@@ -25,6 +30,10 @@ class OEDataRepTsLoader(object):
         _('A translation string')
         if app:
             self.init_app(app)
+
+        service = SwaggerUIService(SwaggerUIServiceConfig)
+        resource = SwaggerUIResource(SwaggerUIConfig(), service)
+        app.register_blueprint(resource.as_blueprint())
 
     def init_app(self, app):
         """Flask application initialization."""
