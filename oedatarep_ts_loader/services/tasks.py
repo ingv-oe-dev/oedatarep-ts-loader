@@ -77,7 +77,7 @@ def execute_register_ts(recid):
                     for k in ts_resource.keys():
                         if k == "ts_published":
                             obj[k] = True
-                        else:
+                        elif k != "guid":
                             obj[k] = ts_resource[k]
                     ts_resources.append(obj)
                 else:
