@@ -12,4 +12,4 @@ This file is imported by ``oedatarep_ts_loader.__init__``,
 and parsed by ``setup.py``.
 """
 
-__version__ = '0.2'
+__version__ = '0.2.1'
