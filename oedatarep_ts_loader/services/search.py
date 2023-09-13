@@ -9,7 +9,7 @@
 
 """Time Series unplushed records."""
 
-from elasticsearch_dsl.query import Q
+from opensearch_dsl.query import Q
 from invenio_search.api import RecordsSearch
 
 
