@@ -31,7 +31,7 @@ def register_ts():
     ids = []
 
     for record in records:
-        if bool(record.metadata.ts_resources):
+        if bool(record.custom_fields["ingv:ts_resources"]):
             ids.append(record.id)
             execute_register_ts.delay(record.id)
 
@@ -52,7 +52,7 @@ def execute_register_ts(recid):
         )
         ts_files = __filter_ts_files(record_files)
 
-        for ts_resource in current_record["metadata"]["ts_resources"]:
+        for ts_resource in current_record["custom_fields"]["ingv:ts_resources"]:
             if not ts_resource["ts_published"]:
 
                 if not ts_resource["name"] in ts_files.keys():
@@ -84,8 +84,8 @@ def execute_register_ts(recid):
                     ts_resources.append(ts_resource)
             else:
                 ts_resources.append(ts_resource)
-
-        current_record["metadata"]["ts_resources"] = ts_resources
+        
+        current_record["custom_fields"]["ingv:ts_resources"] = ts_resources
         oedatarep.update_record_metadata(recid, current_record)
 
     except (RecordMissingFiles, TSDataFileMissing, HeaderFileMissing) as ts_ex:

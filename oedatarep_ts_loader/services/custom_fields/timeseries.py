@@ -33,8 +33,7 @@ class TimeseriesCF(BaseListCF):
         """Return the mapping."""
         return {
             "properties": {
-                "title": {"type": "text"},
-                "program": {"type": "text"},
+                "ts_published": {"type": "boolean"},
             }
         }
 
