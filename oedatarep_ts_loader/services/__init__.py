@@ -1,6 +1,6 @@
-from .components import OEDataRep
-from .components import TSDSystem
+"""Services module."""
 
+from .components import OEDataRep, TSDSystem
 __all__ = (
     "TSDSystem",
     "OEDataRep",

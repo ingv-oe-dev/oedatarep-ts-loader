@@ -22,5 +22,5 @@ class TSRecordsSearch(RecordsSearch):
         index = "rdmrecords-records"
         default_filter = Q(
             "query_string",
-            query=("metadata.ts_resources.ts_published:false"),
+            query=("custom_fields.ingv\:ts_resources.ts_published:false"),
         )
