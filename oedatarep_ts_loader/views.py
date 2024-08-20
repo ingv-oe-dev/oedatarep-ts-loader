@@ -12,7 +12,6 @@
 # the templates and static folders as well as the test case.
 
 from flask import Blueprint, render_template
-from flask_babelex import gettext as _
 
 blueprint = Blueprint(
     'oedatarep_ts_loader',

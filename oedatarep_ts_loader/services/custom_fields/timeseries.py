@@ -1,4 +1,3 @@
-from flask_babelex import lazy_gettext as _
 from invenio_records_resources.services.custom_fields import BaseListCF
 from marshmallow import fields, validate
 from marshmallow_utils.fields import SanitizedUnicode
@@ -21,7 +20,7 @@ class TimeseriesCF(BaseListCF):
                     preview=fields.Dict(),
                     ts_published=fields.Boolean(required=True),
                     tsdws_url=SanitizedUnicode(validate=_valid_url(
-                        _('Not a valid URL.'))),
+                        'Not a valid URL.')),
                 )
             ),
             multiple=True,

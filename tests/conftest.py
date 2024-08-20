@@ -17,7 +17,6 @@ import tempfile
 
 import pytest
 from flask import Flask
-from flask_babelex import Babel
 
 from oedatarep_ts_loader import OEDataRepTsLoader
 from oedatarep_ts_loader.views import blueprint
@@ -38,7 +37,6 @@ def create_app(instance_path):
     def factory(**config):
         app = Flask('testapp', instance_path=instance_path)
         app.config.update(**config)
-        Babel(app)
         OEDataRepTsLoader(app)
         app.register_blueprint(blueprint)
         return app
